@@ -148,15 +148,21 @@ void ATM::registration(Account X)
 
     while (X.balance < 5000)
     {
-        cout << "Minimum deposit is 5000: "; cin >> X.balance;
+        cout << "Minimum deposit is 5000: "; 
+        cin >> X.balance;
         getchar();
     }
     cout << "Balance: " << X.balance << endl;
 
-    cout << "Insert Name: "; getline(cin, X.name);
-    cout << "Insert Birthday(MM/DD/YYYY): "; getline(cin, X.birthday);
-    cout << "Insert Contact Number: "; getline(cin, X.contact);
-    cout << "Create New Pin: "; getline(cin, X.pin);
+    cout << "Insert Name: "; 
+    getline(cin, X.name);
+    cout << "Insert Birthday(MM/DD/YYYY): "; 
+    getline(cin, X.birthday);
+    cout << "Insert Contact Number: "; 
+    getline(cin, X.contact);
+    cout << "Create New Pin: "; 
+    getline(cin, X.pin);
+    
     while (X.pin.length() != 6 || !isAllDigits(X.pin))
     {
         cout << "Invalid pin." << endl;
@@ -172,7 +178,7 @@ void ATM::registration(Account X)
     {
         prev = curr;
         curr = curr->next;
-    }
+     }
 
     if(curr == head)
     {
