@@ -2,8 +2,14 @@
 #include<cstdlib>
 #include<string>
 #include<ctime>
+#include<fstream>
+#include<sstream>
+#include<Windows.h>
 
 using namespace std;
+
+const string fd_fn = "account.csv";
+const string card_fn = "card.csv";
 
 struct Account
 {
@@ -57,8 +63,11 @@ class ATM
 
         bool searchAccNum(string AN);
         bool isAllDigits(string P);
+        bool stringToBool(const string &S);
         string encryptCaesar(string P, int shift = 3);
         string decryptCaesar(string P, int shift = 3);
+        string detectDrive();
+        void insertNode(Account X);
     public:
         ATM()
         {
@@ -119,6 +128,10 @@ string ATM::encryptCaesar(string P, int shift)
 {
     for(int i = 0; i < P.length(); i++)
     {
+        if(P[i] < '0' || P[i] > '9')
+        {
+            continue;
+        }
         P[i] = ((P[i] - '0' + shift) % 10) + '0';
     }
 
@@ -129,10 +142,64 @@ string ATM::decryptCaesar(string P, int shift)
 {
     for(int i = 0; i < P.length(); i++)
     {
+        if(P[i] < '0' || P[i] > '9')
+        {
+            continue;
+        }
         P[i] = ((P[i] - '0' - shift + 10) % 10) + '0';
     }
 
     return P;
+}
+
+string ATM::detectDrive()
+{
+    while (true)
+    {
+        DWORD drives = GetLogicalDrives();
+
+        for (int i = 0; i < 26; i++)
+        {
+            if (drives & (1 << i))
+            {
+                string driveLetter = string(1, 'A' + i) + ":\\";
+
+                if (GetDriveTypeA(driveLetter.c_str()) == DRIVE_REMOVABLE)
+                {
+                    return driveLetter;
+                }
+            }
+        }
+
+        Sleep(500);
+    }
+}
+
+bool ATM::stringToBool(const string &S)
+{
+    return (S == "true" || S == "1");
+}
+
+void ATM::insertNode(Account X)
+{
+    Node *prev, *curr, *newNode;
+    prev = curr = head;
+    newNode = new Node(X);
+
+    while (curr != NULL && newNode->data.name > curr->data.name)
+    {
+        prev = curr;
+        curr = curr->next;
+    }
+
+    if(curr == head)
+    {
+        head = newNode;
+    } else
+    {
+        prev->next = newNode;
+    }
+    newNode->next = curr;
 }
 
 void ATM::registration(Account X)
@@ -163,28 +230,129 @@ void ATM::registration(Account X)
         cout << "Create New Pin: "; getline(cin, X.pin);
     }
     X.pin = encryptCaesar(X.pin);
-    
-    Node *prev, *curr, *newNode;
-    prev = curr = head;
-    newNode = new Node(X);
 
-    while (curr != NULL && newNode->data.name > curr->data.name)
+    insertNode(X);
+    //save
+
+    if(write(X.accNum, X.pin))
     {
-        prev = curr;
+        cout << "Successfully registered!" << endl;
+    } else {
+        cout << "Registration error" << endl;
+    }
+
+    system("pause");
+}
+
+bool ATM::write(string AN, string P)
+{
+    string flash_drive = detectDrive();
+    string path = flash_drive + card_fn;
+    string line = AN + "," + P;
+    string e_line = encryptCaesar(line);
+
+    ofstream file(path);
+    if(!file)
+    {
+        cout << "File error" << endl;
+        system("pause");
+        return false;
+    }
+
+    file << e_line << endl;
+    file.close();
+    return true;
+}
+
+bool ATM::read(string &AN, string &P)
+{
+    bool alert = false;
+    while (true)
+    {
+        string flash_drive = detectDrive();
+        string path = flash_drive + card_fn;
+    
+        ifstream file(path);
+        if(!file)
+        {
+            if(alert == false)
+            {
+                cout << "Please Insert Card." << endl;
+                alert = true;
+            }
+            Sleep(500);
+            continue;
+        }
+        
+        string line;
+        getline(file, line);
+        string d_acc = decryptCaesar(line);
+        stringstream ss(d_acc);
+        getline(ss, AN, ',');
+        getline(ss, P, ',');
+
+        file.close();
+        return true;
+    }
+}
+
+void ATM::save()
+{
+    ofstream file(fd_fn);
+    if(!file)
+    {
+        cout << "File error" << endl;
+        Sleep(500);
+        return;
+    }
+
+    Node *curr = head;
+    while (curr != NULL)
+    {
+        file << curr->data.accNum << ","
+        << curr->data.name << ","
+        << curr->data.birthday << ","
+        << curr->data.contact << ","
+        << curr->data.balance << ","
+        << curr->data.pin << ","
+        << curr->data.locked << endl;
         curr = curr->next;
     }
+    file.close();
+}
 
-    if(curr == head)
+void ATM::load()
+{
+    ifstream file(fd_fn);
+    if(!file)
     {
-        head = newNode;
-    } else
-    {
-        prev->next = newNode;
+        cout << "File error" << endl;
+        Sleep(500);
+        return;
     }
-    newNode->next = curr;
 
-    //save/write
-    
-    cout << "Successfully registered!" << endl;
-    system("pause");
+    Account N;
+    string line;
+    string bal, s_lck;
+    while (getline(file, line))
+    {
+        if(line.empty())
+        {
+            continue;
+        }
+        stringstream ss(line);
+
+        getline(ss, N.accNum, ',');
+        getline(ss, N.name, ',');
+        getline(ss, N.birthday, ',');
+        getline(ss, N.contact, ',');
+        getline(ss, bal, ',');
+        getline(ss, N.pin, ',');
+        getline(ss, s_lck);
+        N.balance = stod(bal);
+        N.locked = stringToBool(s_lck);
+
+        insertNode(N);
+    }
+    file.close();
 }
