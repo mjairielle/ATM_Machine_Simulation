@@ -251,10 +251,10 @@ void ATM::registration(Account X)
     X.pin = encryptCaesar(X.pin);
 
     insertNode(X);
-    //save
 
     if(write(X.accNum, X.pin))
     {
+        save();
         cout << "Successfully registered!" << endl;
     } else {
         cout << "Registration error" << endl;
