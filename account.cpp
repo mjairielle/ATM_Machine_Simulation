@@ -64,9 +64,10 @@ class ATM
         bool searchAccNum(string AN);
         bool isAllDigits(string P);
         bool stringToBool(const string &S);
+        bool isValidDate(int month, int day, int year);
+        string detectDrive();
         string encryptCaesar(string P, int shift = 3);
         string decryptCaesar(string P, int shift = 3);
-        string detectDrive();
         void insertNode(Account X);
         Node *findNode(string AN);
     public:
@@ -98,6 +99,7 @@ class ATM
         bool write(string AN, string P);
         void logout();
         bool isLoggedIn();
+
 };
 
 bool ATM::searchAccNum(string AN)
@@ -131,6 +133,11 @@ Node* ATM::findNode(string AN)
 
 bool ATM::isAllDigits(string P)
 {
+    if (P.empty()) 
+    {
+        return false;
+    }
+
     for(int i = 0; i < P.length(); i++)
     {
         if(P[i] < '0' || P[i] > '9')
@@ -172,7 +179,9 @@ string ATM::decryptCaesar(string P, int shift)
 string ATM::detectDrive()
 {
     while (true)
-    {
+    {   
+        system("cls");
+        cout<<"Insert A Flash Drive!"<<endl;
         DWORD drives = GetLogicalDrives();
 
         for (int i = 0; i < 26; i++)
@@ -182,12 +191,14 @@ string ATM::detectDrive()
                 string driveLetter = string(1, 'A' + i) + ":\\";
 
                 if (GetDriveTypeA(driveLetter.c_str()) == DRIVE_REMOVABLE)
-                {
+                {   
+                    system("cls");
+                    cout<<"Flash Drive Detected."<<endl;
+                    system("pause");
                     return driveLetter;
                 }
             }
         }
-
         Sleep(500);
     }
 }
@@ -195,6 +206,27 @@ string ATM::detectDrive()
 bool ATM::stringToBool(const string &S)
 {
     return (S == "true" || S == "1");
+}
+
+bool ATM :: isValidDate(int month, int day, int year)
+{
+    if (year < 1900 || year > 2026) return false;
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+
+    if ((month == 4 || month == 6 || month == 9 || month == 11) && day > 30)
+    {
+        return false;
+    }
+
+    if (month == 2)
+    {
+        bool isLeapYear = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+        
+        if (isLeapYear && day > 29) return false;
+        if (!isLeapYear && day > 28) return false;
+    }
+    return true;
 }
 
 void ATM::insertNode(Account X)
@@ -220,7 +252,10 @@ void ATM::insertNode(Account X)
 }
 
 void ATM::registration(Account X)
-{
+{   
+    string surname, firstname, middlename;
+    string inputMonth, inputDay, inputYear;
+    int month, day, year;
     int rNum = 10000 + (rand() % 90000);
     X.accNum = to_string(rNum);
     while(searchAccNum(X.accNum))
@@ -230,16 +265,39 @@ void ATM::registration(Account X)
     }
     cout << "Account Number: " << X.accNum << endl;
 
+    X.balance = 0;
     while (X.balance < 5000)
     {
         cout << "Minimum deposit is 5000: "; cin >> X.balance;
         getchar();
     }
     cout << "Balance: " << X.balance << endl;
-
-    cout << "Insert Name: "; getline(cin, X.name);
-    cout << "Insert Birthday(MM/DD/YYYY): "; getline(cin, X.birthday);
+    cout << "Insert Surname: "; getline(cin, surname);
+    cout << "Insert First Name: "; getline(cin, firstname);
+    cout << "Insert Middle Name: "; getline(cin, middlename);
+    X.name = firstname + " " + middlename + " " + surname;
+    while(true){
+    cout << "Insert Birthdate: "<<endl;
+    cout << "Month[MM]: "; getline(cin, inputMonth);
+    cout << "Day[DD]: "; getline(cin, inputDay);
+    cout << "Year[YYYY]: "; getline(cin, inputYear);
+    if (isAllDigits(inputMonth) && isAllDigits(inputDay) && isAllDigits(inputYear)){
+        month = stoi(inputMonth);
+        day = stoi(inputDay);
+        year = stoi(inputYear);
+        if (isValidDate(month, day, year)) break;
+        else cout<<"Error: That date does not exist. Please try again."<<endl;
+        }
+    else{
+        cout<<"Error: Please Enter Numbers Only."<<endl;
+        }
+    }
+    X.birthday = (month < 10 ? "0" : "") + to_string(month) + '-' + (day < 10 ? "0" : "") + to_string(day) + '-' + to_string(year);
     cout << "Insert Contact Number: "; getline(cin, X.contact);
+    while(X.contact.length() != 11 || !isAllDigits(X.contact)){
+        cout << "Invalid Contact Number Format." << endl;
+        cout << "Insert Contact Number: "; getline(cin, X.contact);
+    }
     cout << "Create New Pin: "; getline(cin, X.pin);
     while (X.pin.length() != 6 || !isAllDigits(X.pin))
     {
@@ -247,7 +305,6 @@ void ATM::registration(Account X)
         cout << "Create New Pin: "; getline(cin, X.pin);
     }
     X.pin = encryptCaesar(X.pin);
-
     insertNode(X);
 
     if(write(X.accNum, X.pin))
@@ -593,7 +650,7 @@ int main()
     double amt;
     string recipAN, recipNM;
     while(true)
-    {
+    {   
         switch (mainMenu())
         {
         case 1:
