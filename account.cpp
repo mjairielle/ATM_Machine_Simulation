@@ -86,7 +86,7 @@ class ATM
                 delete curr;
             }
         }
-        void registration(Account X);
+        void registration(Account &X);
         void login(string AN, string P);
         double balance();
         void withdraw(double N);
@@ -251,7 +251,7 @@ void ATM::insertNode(Account X)
     newNode->next = curr;
 }
 
-void ATM::registration(Account X)
+void ATM::registration(Account &X)
 {   
     string surname, firstname, middlename;
     string inputMonth, inputDay, inputYear;
@@ -481,6 +481,7 @@ void ATM::login(string AN, string P)
         }
     }
     curr->data.locked = true;
+    logout();
     save();
     cout << "Account is locked, please see admin" << endl;
     return;
@@ -598,6 +599,7 @@ void ATM::pin()
         }
     }
     currentAcc->locked = true;
+    logout();
     save();
     return;
 }
