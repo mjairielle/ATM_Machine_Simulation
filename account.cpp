@@ -52,6 +52,7 @@ struct Node
     Node(Account X)
     {
         data = X;
+        next = NULL;
     }
 };
 
@@ -62,7 +63,6 @@ class ATM
         Account *currentAcc;
 
         bool searchAccNum(string AN);
-        bool isAllDigits(string P);
         bool stringToBool(const string &S);
         bool isValidDate(int month, int day, int year);
         string detectDrive();
@@ -86,10 +86,12 @@ class ATM
                 delete curr;
             }
         }
+        bool isAllDigits(string P);
+        bool isValidAmount(string B);
         void registration(Account &X);
         void login(string AN, string P);
         double balance();
-        void withdraw(double N);
+        void withdraw(int N);
         void deposit(double N);
         void transfer(double N, string AN, string NM);
         void pin();
@@ -147,6 +149,39 @@ bool ATM::isAllDigits(string P)
     }
     return true;
 }
+
+bool ATM::isValidAmount(string B)
+{
+    if (B.empty())
+    {
+        return false;
+    }
+
+    bool seenDot = false;
+
+    for (int i = 0; i < B.length(); i++)
+    {
+        if(B[i] >= '0' && B[i] <= '9')
+        {
+            continue;
+        }
+        else if(B[i] == '.' && !seenDot)
+        {
+            seenDot = true;
+            continue;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    if(B == ".")
+    {
+        return false;
+    }
+    return true;
+}
+        
 
 string ATM::encryptCaesar(string P, int shift)
 {
@@ -263,13 +298,18 @@ void ATM::registration(Account &X)
         rNum = 10000 + (rand() % 90000);
         X.accNum = to_string(rNum);
     }
+    cout << "=========Registration=========" << endl;
     cout << "Account Number: " << X.accNum << endl;
-
     X.balance = 0;
+    string balanceInput;
     while (X.balance < 5000)
     {
-        cout << "Minimum deposit is 5000: "; cin >> X.balance;
-        getchar();
+        cout << "Minimum deposit is 5000: "; 
+        getline(cin, balanceInput);
+        if(isValidAmount(balanceInput))
+        {
+            X.balance = stod(balanceInput);
+        }
     }
     cout << "Balance: " << X.balance << endl;
     cout << "Insert Surname: "; getline(cin, surname);
@@ -481,8 +521,8 @@ void ATM::login(string AN, string P)
         }
     }
     curr->data.locked = true;
-    logout();
     save();
+    logout();
     cout << "Account is locked, please see admin" << endl;
     return;
 }
@@ -492,7 +532,7 @@ double ATM::balance()
     return currentAcc->balance;
 }
 
-void ATM::withdraw(double N)
+void ATM::withdraw(int N)
 {
     while(N > currentAcc->balance || N < 0)
     {
@@ -548,7 +588,7 @@ void ATM::transfer(double N, string AN, string NM)
     while(N > currentAcc->balance || N < 0)
     {
         cout << "Invalid amount, your balance is: " << currentAcc->balance << endl;
-        cout << "Withdraw valid amount: "; cin >> N;
+        cout << "Transfer valid amount: "; cin >> N;
     }
 
     currentAcc->balance -= N;
@@ -599,8 +639,9 @@ void ATM::pin()
         }
     }
     currentAcc->locked = true;
-    logout();
+    cout << "Account is locked, please see admin" << endl;
     save();
+    logout();
     return;
 }
 
@@ -650,7 +691,8 @@ int main()
     atm.load();
     Account newAcc;
     double amt;
-    string recipAN, recipNM;
+    int amtW;
+    string amount, recipAN, recipNM;
     while(true)
     {   
         switch (mainMenu())
@@ -669,13 +711,27 @@ int main()
                         system("pause");
                         break;
                     case 2:
-                        cout << "Insert amount to withdraw: "; cin >> amt;
-                        getchar();
-                        atm.withdraw(amt);
+                        cout << "Insert amount to withdraw: "; 
+                        getline(cin, amount);
+                        if(!atm.isAllDigits(amount))
+                        {
+                            cout<<"Invalid Input.";
+                            system("pause");
+                            break;
+                        }
+                        amtW = stoi(amount);
+                        atm.withdraw(amtW);
                         break;
                     case 3:
-                        cout << "Insert amount to deposit: "; cin >> amt;
-                        getchar();
+                        cout << "Insert amount to deposit: "; 
+                        getline(cin, amount);
+                        if(!atm.isValidAmount(amount))
+                        {
+                            cout<<"Invalid Input.";
+                            system("pause");
+                            break;
+                        }
+                        amt = stod(amount);
                         atm.deposit(amt);
                         break;
                     case 4:
@@ -683,9 +739,15 @@ int main()
                         getline(cin, recipAN);
                         cout << "Insert the Name of the recipient: "; 
                         getline(cin, recipNM);
-                        cout << "Insert the amount to transfer: "; 
-                        cin >> amt;
-                        getchar();
+                        do{
+                            cout << "Insert the amount to transfer: "; 
+                            getline(cin, amount);
+                            if(!atm.isValidAmount(amount))
+                            {
+                                cout<<"Invalid Input.";
+                            }
+                        }while(!atm.isValidAmount(amount));
+                        amt = stod(amount);
                         atm.transfer(amt, recipAN, recipNM);
                         break;
                     case 5:
