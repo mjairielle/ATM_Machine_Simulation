@@ -101,6 +101,7 @@ class ATM
         bool write(string AN, string P);
         void logout();
         bool isLoggedIn();
+        bool isRegistered();
 
 };
 
@@ -288,6 +289,10 @@ void ATM::insertNode(Account X)
 
 void ATM::registration(Account &X)
 {   
+    if(isRegistered()){
+        cout<<"Account Already Registered."<<endl;
+        return;
+    }
     string surname, firstname, middlename;
     string inputMonth, inputDay, inputYear;
     int month, day, year;
@@ -300,7 +305,6 @@ void ATM::registration(Account &X)
     }
     cout << "=========Registration=========" << endl;
     cout << "Account Number: " << X.accNum << endl;
-    X.balance = 0;
     string balanceInput;
     while (X.balance < 5000)
     {
@@ -643,6 +647,22 @@ void ATM::pin()
     save();
     logout();
     return;
+}
+
+bool ATM::isRegistered(){
+    string flash_drive = detectDrive();
+    string path = flash_drive + card_fn;
+    bool flag = true;
+
+    ifstream file(path);
+
+    if(!file)
+    {
+        flag = false;
+    }
+
+    file.close();
+    return flag;
 }
 
 bool ATM::isLoggedIn()
