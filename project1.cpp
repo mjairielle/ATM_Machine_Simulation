@@ -716,6 +716,10 @@ void ATM::logout()
 }
 
 void ATM::displayAcc(){
+    if(head == NULL){
+        cout<<"No accounts Available."<<endl;
+        return;
+    }
     Node *curr = head;
     cout<<left<<setw(20)<<"Account ID"
         <<left<<setw(30)<<"Account Name"
