@@ -742,7 +742,7 @@ void ATM::displayAcc(){
     Node *curr = head;
     cout<<left<<setw(20)<<"Account ID"
         <<left<<setw(30)<<"Account Name"
-        <<left<<setw(8)<<"Status"
+        <<left<<setw(10)<<"Status"
         <<endl;
     while(curr != NULL){
         cout<<left<<setw(20)<<curr -> data.accNum
