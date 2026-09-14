@@ -96,7 +96,7 @@ class ATM
         void login(string AN, string P);
         double balance();
         void withdraw(int N);
-        void deposit(double N);
+        void deposit(int N);
         void transfer(double N, string AN, string NM);
         void pin();
         void save();
@@ -554,10 +554,16 @@ void ATM::withdraw(int N)
     while(N > currentAcc->balance || N < 0)
     {
         cout << "Invalid amount, your balance is: " << currentAcc->balance << endl;
-        cout << "Withdraw valid amount: "; getline(cin, amount);
+        cout << "Withdraw valid amount [Minimum 100]: "; getline(cin, amount);
         if(!isAllDigits(amount) || amount.length() > 9)
         {
             cout << "Invalid amount, please enter digits only" << endl;
+            continue;
+        }else if(stoi(amount) < 100){
+            cout << "Invalid amount, minimum withdrawal of 100" << endl;
+            continue;
+        }else if(stoi(amount) % 100 != 0){
+            cout << "Invalid amount, must be divisible by a hundred" << endl;
             continue;
         }
         N = stoi(amount);
@@ -568,18 +574,22 @@ void ATM::withdraw(int N)
     return;
 }
 
-void ATM::deposit(double N)
+void ATM::deposit(int N)
 {
     string amount;
     while (N < 0)
     {
         cout << "Invalid amount, your balance is: " << currentAcc->balance << endl;
-        cout << "Deposit valid amount[Minimum 100]: "; getline(cin, amount);
-        if(!isValidAmount(amount))
+        cout << "Deposit valid amount [Minimum 100]: "; getline(cin, amount);
+        if(!isAllDigits(amount) || amount.length() > 9)
         {
             cout << "Invalid amount, please try again" << endl;
             continue;
+        }else if(stoi(amount) < 100){
+            cout << "Invalid amount, minimum deposit of 100" << endl;
             continue;
+        }else if(stoi(amount) % 100 != 0){
+            cout << "Invalid amount, must be divisible by a hundred" << endl;
             continue;
         }
         N = stoi(amount);
@@ -845,7 +855,7 @@ int main()
                     case 3:
                         cout << "Insert amount to deposit [Minimum 100]: "; 
                         getline(cin, amount);
-                        if(!atm.isValidAmount(amount))
+                        if(!atm.isAllDigits(amount) || amount.length() > 9)
                         {
                             cout<<"Invalid Input.";
                             system("pause");
