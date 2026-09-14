@@ -92,6 +92,7 @@ class ATM
         }
         bool isAllDigits(string P);
         bool isValidAmount(string B);
+        bool isValidTransaction(string amount);
         void registration(Account &X);
         void login(string AN, string P);
         double balance();
@@ -268,6 +269,26 @@ bool ATM :: isValidDate(int month, int day, int year)
         if (isLeapYear && day > 29) return false;
         if (!isLeapYear && day > 28) return false;
     }
+    return true;
+}
+
+bool ATM :: isValidTransaction(string amount)
+{
+    if(!isAllDigits(amount) || amount.length() > 9)
+        {
+            cout << "Invalid amount, please enter digits only" << endl;
+            return false;
+        }
+    else if(stoi(amount) < 100)
+        {
+            cout << "Invalid amount, minimum transaction of 100" << endl;
+            return false;
+        }
+    else if(stoi(amount) % 100 != 0)
+        {
+            cout << "Invalid amount, must be divisible by a hundred" << endl;
+            return false;
+        }
     return true;
 }
 
@@ -555,15 +576,8 @@ void ATM::withdraw(int N)
     {
         cout << "Invalid amount, your balance is: " << currentAcc->balance << endl;
         cout << "Withdraw valid amount [Minimum 100]: "; getline(cin, amount);
-        if(!isAllDigits(amount) || amount.length() > 9)
+        if(!isValidTransaction(amount))
         {
-            cout << "Invalid amount, please enter digits only" << endl;
-            continue;
-        }else if(stoi(amount) < 100){
-            cout << "Invalid amount, minimum withdrawal of 100" << endl;
-            continue;
-        }else if(stoi(amount) % 100 != 0){
-            cout << "Invalid amount, must be divisible by a hundred" << endl;
             continue;
         }
         N = stoi(amount);
@@ -581,15 +595,8 @@ void ATM::deposit(int N)
     {
         cout << "Invalid amount, your balance is: " << currentAcc->balance << endl;
         cout << "Deposit valid amount [Minimum 100]: "; getline(cin, amount);
-        if(!isAllDigits(amount) || amount.length() > 9)
+        if(!isValidTransaction(amount))
         {
-            cout << "Invalid amount, please try again" << endl;
-            continue;
-        }else if(stoi(amount) < 100){
-            cout << "Invalid amount, minimum deposit of 100" << endl;
-            continue;
-        }else if(stoi(amount) % 100 != 0){
-            cout << "Invalid amount, must be divisible by a hundred" << endl;
             continue;
         }
         N = stoi(amount);
@@ -843,9 +850,8 @@ int main()
                     case 2:
                         cout << "Insert amount to withdraw [Minimum 100]: "; 
                         getline(cin, amount);
-                        if(!atm.isAllDigits(amount) || amount.length() > 9)
+                        if(!atm.isValidTransaction(amount))
                         {
-                            cout<<"Invalid Input.";
                             system("pause");
                             break;
                         }
@@ -855,9 +861,8 @@ int main()
                     case 3:
                         cout << "Insert amount to deposit [Minimum 100]: "; 
                         getline(cin, amount);
-                        if(!atm.isAllDigits(amount) || amount.length() > 9)
+                        if(!atm.isValidTransaction(amount))
                         {
-                            cout<<"Invalid Input.";
                             system("pause");
                             break;
                         }
