@@ -574,13 +574,15 @@ void ATM::deposit(double N)
     while (N < 0)
     {
         cout << "Invalid amount, your balance is: " << currentAcc->balance << endl;
-        cout << "Deposit valid amount: "; getline(cin, amount);
+        cout << "Deposit valid amount[Minimum 100]: "; getline(cin, amount);
         if(!isValidAmount(amount))
         {
             cout << "Invalid amount, please try again" << endl;
             continue;
+            continue;
+            continue;
         }
-        N = stod(amount);
+        N = stoi(amount);
     }
 
     currentAcc->balance += N;
@@ -808,7 +810,7 @@ int main()
     atm.load();
     Account newAcc;
     double amt;
-    int amtW;
+    int amtI;
     string amount, recipAN, recipNM, unlockAN;
     while(true)
     {   
@@ -829,7 +831,7 @@ int main()
                         system("pause");
                         break;
                     case 2:
-                        cout << "Insert amount to withdraw: "; 
+                        cout << "Insert amount to withdraw [Minimum 100]: "; 
                         getline(cin, amount);
                         if(!atm.isAllDigits(amount) || amount.length() > 9)
                         {
@@ -837,11 +839,11 @@ int main()
                             system("pause");
                             break;
                         }
-                        amtW = stoi(amount);
-                        atm.withdraw(amtW);
+                        amtI = stoi(amount);
+                        atm.withdraw(amtI);
                         break;
                     case 3:
-                        cout << "Insert amount to deposit: "; 
+                        cout << "Insert amount to deposit [Minimum 100]: "; 
                         getline(cin, amount);
                         if(!atm.isValidAmount(amount))
                         {
@@ -849,8 +851,8 @@ int main()
                             system("pause");
                             break;
                         }
-                        amt = stod(amount);
-                        atm.deposit(amt);
+                        amtI = stoi(amount);
+                        atm.deposit(amtI);
                         break;
                     case 4:
                         cout << "Insert the Account Number of the recipient: "; 
@@ -862,7 +864,7 @@ int main()
                             getline(cin, amount);
                             if(!atm.isValidAmount(amount))
                             {
-                                cout<<"Invalid Input.";
+                                cout<<"Invalid Input"<<endl;
                             }
                         }while(!atm.isValidAmount(amount));
                         amt = stod(amount);
