@@ -1,10 +1,19 @@
 #include<iostream>
-#include<cstdlib>
 #include<iomanip>
+#include<cstdlib>
 #include<string>
 #include<ctime>
+#include<fstream>
+#include<sstream>
+#include<Windows.h>
 
 using namespace std;
+
+const string fd_fn = "account.csv";
+const string card_fn = "card.csv";
+
+const string ADMIN_USER = "admin";
+const string ADMIN_PASS = "admin123";
 
 struct Account
 {
@@ -47,6 +56,7 @@ struct Node
     Node(Account X)
     {
         data = X;
+        next = NULL;
     }
 };
 
@@ -57,9 +67,13 @@ class ATM
         Account *currentAcc;
 
         bool searchAccNum(string AN);
-        bool isAllDigits(string P);
+        bool stringToBool(const string &S);
+        bool isValidDate(int month, int day, int year);
+        string detectDrive();
         string encryptCaesar(string P, int shift = 3);
         string decryptCaesar(string P, int shift = 3);
+        void insertNode(Account X);
+        Node *findNode(string AN);
     public:
         ATM()
         {
@@ -76,26 +90,25 @@ class ATM
                 delete curr;
             }
         }
-        void registration(Account X);
+        bool isAllDigits(string P);
+        bool isValidAmount(string B);
+        void registration(Account &X);
         void login(string AN, string P);
         double balance();
-        void withdraw(double N);
+        void withdraw(int N);
         void deposit(double N);
         void transfer(double N, string AN, string NM);
-        void pin(string P);
+        void pin();
         void save();
         void load();
         bool read(string &AN, string &P);
         bool write(string AN, string P);
-<<<<<<< Updated upstream
-=======
         void logout();
         bool isLoggedIn();
         bool isRegistered();
         void displayAcc();
         void unlock(string AN);
 
->>>>>>> Stashed changes
 };
 
 bool ATM::searchAccNum(string AN)
@@ -113,8 +126,27 @@ bool ATM::searchAccNum(string AN)
     return false;
 }
 
+Node* ATM::findNode(string AN)
+{
+    Node *curr = head;
+    while (curr != NULL)
+    {
+        if(curr->data.accNum == AN)
+        {
+            return curr;
+        }
+        curr = curr->next;
+    }
+    return NULL;
+}
+
 bool ATM::isAllDigits(string P)
 {
+    if (P.empty()) 
+    {
+        return false;
+    }
+
     for(int i = 0; i < P.length(); i++)
     {
         if(P[i] < '0' || P[i] > '9')
@@ -125,10 +157,47 @@ bool ATM::isAllDigits(string P)
     return true;
 }
 
+bool ATM::isValidAmount(string B)
+{
+    if (B.empty() || B.length() > 15)
+    {
+        return false;
+    }
+
+    bool seenDot = false;
+
+    for (int i = 0; i < B.length(); i++)
+    {
+        if(B[i] >= '0' && B[i] <= '9')
+        {
+            continue;
+        }
+        else if(B[i] == '.' && !seenDot)
+        {
+            seenDot = true;
+            continue;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    if(B == ".")
+    {
+        return false;
+    }
+    return true;
+}
+        
+
 string ATM::encryptCaesar(string P, int shift)
 {
     for(int i = 0; i < P.length(); i++)
     {
+        if(P[i] < '0' || P[i] > '9')
+        {
+            continue;
+        }
         P[i] = ((P[i] - '0' + shift) % 10) + '0';
     }
 
@@ -139,47 +208,71 @@ string ATM::decryptCaesar(string P, int shift)
 {
     for(int i = 0; i < P.length(); i++)
     {
+        if(P[i] < '0' || P[i] > '9')
+        {
+            continue;
+        }
         P[i] = ((P[i] - '0' - shift + 10) % 10) + '0';
     }
 
     return P;
 }
 
-void ATM::registration(Account X)
+string ATM::detectDrive()
 {
-    int rNum = 10000 + (rand() % 90000);
-    X.accNum = to_string(rNum);
-    while(searchAccNum(X.accNum))
-    {
-        rNum = 10000 + (rand() % 90000);
-        X.accNum = to_string(rNum);
-    }
-    cout << "Account Number: " << X.accNum << endl;
+    while (true)
+    {   
+        system("cls");
+        cout<<"Insert A Flash Drive!"<<endl;
+        DWORD drives = GetLogicalDrives();
 
-    while (X.balance < 5000)
-    {
-        cout << "Minimum deposit is 5000: "; 
-        cin >> X.balance;
-        getchar();
-    }
-    cout << "Balance: " << X.balance << endl;
+        for (int i = 0; i < 26; i++)
+        {
+            if (drives & (1 << i))
+            {
+                string driveLetter = string(1, 'A' + i) + ":\\";
 
-    cout << "Insert Name: "; 
-    getline(cin, X.name);
-    cout << "Insert Birthday(MM/DD/YYYY): "; 
-    getline(cin, X.birthday);
-    cout << "Insert Contact Number: "; 
-    getline(cin, X.contact);
-    cout << "Create New Pin: "; 
-    getline(cin, X.pin);
-    
-    while (X.pin.length() != 6 || !isAllDigits(X.pin))
-    {
-        cout << "Invalid pin." << endl;
-        cout << "Create New Pin: "; getline(cin, X.pin);
+                if (GetDriveTypeA(driveLetter.c_str()) == DRIVE_REMOVABLE)
+                {   
+                    system("cls");
+                    cout<<"Flash Drive Detected."<<endl;
+                    system("pause");
+                    return driveLetter;
+                }
+            }
+        }
+        Sleep(500);
     }
-    X.pin = encryptCaesar(X.pin);
-    
+}
+
+bool ATM::stringToBool(const string &S)
+{
+    return (S == "true" || S == "1");
+}
+
+bool ATM :: isValidDate(int month, int day, int year)
+{
+    if (year < 1900 || year > 2026) return false;
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+
+    if ((month == 4 || month == 6 || month == 9 || month == 11) && day > 30)
+    {
+        return false;
+    }
+
+    if (month == 2)
+    {
+        bool isLeapYear = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+        
+        if (isLeapYear && day > 29) return false;
+        if (!isLeapYear && day > 28) return false;
+    }
+    return true;
+}
+
+void ATM::insertNode(Account X)
+{
     Node *prev, *curr, *newNode;
     prev = curr = head;
     newNode = new Node(X);
@@ -188,7 +281,7 @@ void ATM::registration(Account X)
     {
         prev = curr;
         curr = curr->next;
-     }
+    }
 
     if(curr == head)
     {
@@ -198,13 +291,111 @@ void ATM::registration(Account X)
         prev->next = newNode;
     }
     newNode->next = curr;
+}
 
-    //save/write
-    
-<<<<<<< Updated upstream
-    cout << "Successfully registered!" << endl;
+void ATM::registration(Account &X)
+{   
+    if(isRegistered()){
+        cout<<"Account Already Registered."<<endl;
+        return;
+    }
+    string surname, firstname, middlename;
+    string inputMonth, inputDay, inputYear;
+    int month, day, year;
+    int rNum = 10000 + (rand() % 90000);
+    X.accNum = to_string(rNum);
+    while(searchAccNum(X.accNum))
+    {
+        rNum = 10000 + (rand() % 90000);
+        X.accNum = to_string(rNum);
+    }
+    cout << "=========Registration=========" << endl;
+    cout << "Account Number: " << X.accNum << endl;
+    string balanceInput;
+    while (X.balance < 5000)
+    {
+        cout << "Minimum deposit is 5000: "; 
+        getline(cin, balanceInput);
+        if(isValidAmount(balanceInput))
+        {
+            X.balance = stod(balanceInput);
+        }
+    }
+    cout << "Balance: " << X.balance << endl;
+    cout << "Insert Surname: "; getline(cin, surname);
+    cout << "Insert First Name: "; getline(cin, firstname);
+    cout << "Insert Middle Name: "; getline(cin, middlename);
+    X.name = firstname + " " + middlename + " " + surname;
+    while(true){
+    cout << "Insert Birthdate: "<<endl;
+    cout << "Month[MM]: "; getline(cin, inputMonth);
+    cout << "Day[DD]: "; getline(cin, inputDay);
+    cout << "Year[YYYY]: "; getline(cin, inputYear);
+    if (isAllDigits(inputMonth) && isAllDigits(inputDay) && isAllDigits(inputYear)){
+        month = stoi(inputMonth);
+        day = stoi(inputDay);
+        year = stoi(inputYear);
+        if (isValidDate(month, day, year)) break;
+        else cout<<"Error: That date does not exist. Please try again."<<endl;
+        }
+    else{
+        cout<<"Error: Please Enter Numbers Only."<<endl;
+        }
+    }
+    X.birthday = (month < 10 ? "0" : "") + to_string(month) + '-' + (day < 10 ? "0" : "") + to_string(day) + '-' + to_string(year);
+    cout << "Insert Contact Number: "; getline(cin, X.contact);
+    while(X.contact.length() != 11 || !isAllDigits(X.contact)){
+        cout << "Invalid Contact Number Format." << endl;
+        cout << "Insert Contact Number: "; getline(cin, X.contact);
+    }
+    cout << "Create New Pin: "; getline(cin, X.pin);
+    while (X.pin.length() != 6 || !isAllDigits(X.pin))
+    {
+        cout << "Invalid pin." << endl;
+        cout << "Create New Pin: "; getline(cin, X.pin);
+    }
+    X.pin = encryptCaesar(X.pin);
+
+    if(write(X.accNum, X.pin))
+    {
+        insertNode(X);
+        save();
+        cout << "Successfully registered!" << endl;
+    } else {
+        cout << "Registration error" << endl;
+    }
+
     system("pause");
-=======
+}
+
+bool ATM::write(string AN, string P)
+{
+    string flash_drive = detectDrive();
+    string path = flash_drive + card_fn;
+    string line = AN + "," + P;
+    string e_line = encryptCaesar(line);
+
+    ofstream file(path);
+    if(!file)
+    {
+        cout << "File error" << endl;
+        system("pause");
+        return false;
+    }
+
+    file << e_line << endl;
+    file.close();
+    return true;
+}
+
+bool ATM::read(string &AN, string &P)
+{
+    bool alert = false;
+    while (true)
+    {
+        string flash_drive = detectDrive();
+        string path = flash_drive + card_fn;
+    
         ifstream file(path);
         if(!file)
         {
@@ -528,12 +719,12 @@ void ATM::displayAcc(){
     Node *curr = head;
     cout<<left<<setw(20)<<"Account ID"
         <<left<<setw(30)<<"Account Name"
-        <<left<<setw(11)<<"Status"
+        <<left<<setw(8)<<"Status"
         <<endl;
     while(curr != NULL){
         cout<<left<<setw(20)<<curr -> data.accNum
             <<left<<setw(30)<<curr -> data.name
-            <<left<<setw(11)<<((curr -> data.locked == true) ? "Locked" : "Unlocked")
+            <<left<<setw(10)<<((curr -> data.locked == true) ? "Locked":"Unlocked")
             <<endl;
         curr = curr -> next;
     }
@@ -734,5 +925,4 @@ int main()
         }
     }
     return 0;
->>>>>>> Stashed changes
 }
