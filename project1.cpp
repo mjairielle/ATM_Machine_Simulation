@@ -400,8 +400,8 @@ void ATM::registration(Account &X)
 }
 
 bool ATM::write(string AN, string P)
-{
-    string flash_drive = detectDrive(false);
+{   
+    string flash_drive = detectDrive(searchAccNum(AN));  
     string path = flash_drive + card_fn;
     string line = AN + "," + P;
     string e_line = encryptCaesar(line);
