@@ -69,7 +69,7 @@ class ATM
         bool searchAccNum(string AN);
         bool stringToBool(const string &S);
         bool isValidDate(int month, int day, int year);
-        string detectDrive();
+        string detectDrive(bool requiredCardPresent);
         string encryptCaesar(string P, int shift = 3);
         string decryptCaesar(string P, int shift = 3);
         void insertNode(Account X);
@@ -219,7 +219,7 @@ string ATM::decryptCaesar(string P, int shift)
     return P;
 }
 
-string ATM::detectDrive()
+string ATM::detectDrive(bool requiredCardPresent)
 {
     while (true)
     {   
@@ -235,10 +235,20 @@ string ATM::detectDrive()
 
                 if (GetDriveTypeA(driveLetter.c_str()) == DRIVE_REMOVABLE)
                 {   
-                    system("cls");
-                    cout<<"Flash Drive Detected."<<endl;
-                    system("pause");
-                    return driveLetter;
+                    string path = driveLetter + card_fn;
+                    ifstream file(path);
+                    if(!file)
+                    {
+                        if(!requiredCardPresent){
+                            return driveLetter;
+                        }
+                    }
+                    else
+                    {   
+                        if(requiredCardPresent){
+                            return driveLetter;
+                        }
+                    }
                 }
             }
         }
@@ -391,7 +401,7 @@ void ATM::registration(Account &X)
 
 bool ATM::write(string AN, string P)
 {
-    string flash_drive = detectDrive();
+    string flash_drive = detectDrive(false);
     string path = flash_drive + card_fn;
     string line = AN + "," + P;
     string e_line = encryptCaesar(line);
@@ -414,7 +424,7 @@ bool ATM::read(string &AN, string &P)
     bool alert = false;
     while (true)
     {
-        string flash_drive = detectDrive();
+        string flash_drive = detectDrive(true);
         string path = flash_drive + card_fn;
     
         ifstream file(path);
@@ -709,19 +719,27 @@ void ATM::pin()
 }
 
 bool ATM::isRegistered(){
-    string flash_drive = detectDrive();
-    string path = flash_drive + card_fn;
-    bool flag = true;
+    DWORD drives = GetLogicalDrives();
 
-    ifstream file(path);
-
-    if(!file)
+    for (int i = 0; i < 26; i++)
     {
-        flag = false;
-    }
+        if (drives & (1 << i))
+        {
+            string driveLetter = string(1, 'A' + i) + ":\\";
 
-    file.close();
-    return flag;
+            if (GetDriveTypeA(driveLetter.c_str()) == DRIVE_REMOVABLE)
+            {   
+                string path = driveLetter + card_fn;
+                ifstream file(path);
+                if(file)
+                {
+                    file.close();
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }
 
 bool ATM::isLoggedIn()
