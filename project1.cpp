@@ -69,6 +69,8 @@ class ATM
         bool searchAccNum(string AN);
         bool stringToBool(const string &S);
         bool isValidDate(int month, int day, int year);
+        bool isAllAlphabet(string N);
+        string toSentenceCase(string N);
         string detectDrive(bool requiredCardPresent);
         string encryptCaesar(string P, int shift = 3);
         string decryptCaesar(string P, int shift = 3);
@@ -156,6 +158,49 @@ bool ATM::isAllDigits(string P)
         }
     }
     return true;
+}
+
+bool ATM::isAllAlphabet(string N)
+{
+    if (N.empty())
+    {
+        return false;
+    }
+    for(int i = 0; i < N.length(); i++)
+    {
+        if(N[i] != ' ' && (tolower(N[i]) < 'a' || tolower(N[i]) > 'z'))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+string ATM::toSentenceCase(string N)
+{
+    string temp;
+    bool isCapNext = true;
+    bool prevSpace = false;
+
+    for (int i = 0; i < N.length(); i++)
+    {
+        if(N[i] == ' ')
+        {
+            if(!prevSpace)
+            {
+                temp += ' ';
+            }
+            prevSpace = true;
+            isCapNext = true;
+        }
+        else
+        {
+            temp += (char)(isCapNext ? toupper(N[i]) : tolower(N[i]));
+            isCapNext = false;
+            prevSpace = false;
+        }
+    }
+    return temp;
 }
 
 bool ATM::isValidAmount(string B)
@@ -328,6 +373,7 @@ void ATM::registration(Account &X)
 {   
     if(isRegistered()){
         cout<<"Account Already Registered."<<endl;
+        system("pause");
         return;
     }
     string surname, firstname, middlename;
@@ -343,6 +389,7 @@ void ATM::registration(Account &X)
     cout << "=========Registration=========" << endl;
     cout << "Account Number: " << X.accNum << endl;
     string balanceInput;
+    X.balance = 0;
     while (X.balance < 5000)
     {
         cout << "Minimum deposit is 5000: "; 
@@ -353,10 +400,21 @@ void ATM::registration(Account &X)
         }
     }
     cout << "Balance: " << X.balance << endl;
+    do{
     cout << "Insert Surname: "; getline(cin, surname);
     cout << "Insert First Name: "; getline(cin, firstname);
     cout << "Insert Middle Name: "; getline(cin, middlename);
+    if(isAllAlphabet(surname) && isAllAlphabet(firstname) && isAllAlphabet(middlename))
+    {
+        break;
+    }
+    else
+    {
+        cout<<"Invalid Name Format"<<endl;
+    }
+    }while(true);
     X.name = firstname + " " + middlename + " " + surname;
+    X.name = toSentenceCase(X.name);
     while(true){
     cout << "Insert Birthdate: "<<endl;
     cout << "Month[MM]: "; getline(cin, inputMonth);
@@ -719,27 +777,31 @@ void ATM::pin()
 }
 
 bool ATM::isRegistered(){
-    DWORD drives = GetLogicalDrives();
-
-    for (int i = 0; i < 26; i++)
-    {
-        if (drives & (1 << i))
+    while(true){
+        system("cls");
+        cout<<"Insert A Flash Drive!"<<endl;
+        DWORD drives = GetLogicalDrives();
+        for (int i = 0; i < 26; i++)
         {
-            string driveLetter = string(1, 'A' + i) + ":\\";
+            if (drives & (1 << i))
+            {
+                string driveLetter = string(1, 'A' + i) + ":\\";
 
-            if (GetDriveTypeA(driveLetter.c_str()) == DRIVE_REMOVABLE)
-            {   
-                string path = driveLetter + card_fn;
-                ifstream file(path);
-                if(file)
-                {
-                    file.close();
-                    return true;
+                if (GetDriveTypeA(driveLetter.c_str()) == DRIVE_REMOVABLE)
+                {   
+                    string path = driveLetter + card_fn;
+                    ifstream file(path);
+                    if(file)
+                    {
+                        file.close();
+                        return true;
+                    }
+                    return false;
                 }
             }
         }
+        Sleep(500);
     }
-    return false;
 }
 
 bool ATM::isLoggedIn()
