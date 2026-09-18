@@ -1,4 +1,5 @@
 #include<iostream>
+#include<iomanip>
 #include<cstdlib>
 #include<string>
 #include<ctime>
@@ -68,11 +69,13 @@ class ATM
         bool searchAccNum(string AN);
         bool stringToBool(const string &S);
         bool isValidDate(int month, int day, int year);
-        string detectDrive();
+        string detectDrive(bool requiredCardPresent);
         string encryptCaesar(string P, int shift = 3);
         string decryptCaesar(string P, int shift = 3);
         void insertNode(Account X);
         Node *findNode(string AN);
+        string scanDrivesOnce(bool requiredCardPresent);
+        int promptTransactionAmount(string label);
     public:
         ATM()
         {
@@ -91,11 +94,12 @@ class ATM
         }
         bool isAllDigits(string P);
         bool isValidAmount(string B);
+        bool isValidTransaction(string amount);
         void registration(Account &X);
         void login(string AN, string P);
         double balance();
         void withdraw(int N);
-        void deposit(double N);
+        void deposit(int N);
         void transfer(double N, string AN, string NM);
         void pin();
         void save();
@@ -105,8 +109,8 @@ class ATM
         void logout();
         bool isLoggedIn();
         bool isRegistered();
+        void displayAcc();
         void unlock(string AN);
-
 };
 
 bool ATM::searchAccNum(string AN)
@@ -216,31 +220,58 @@ string ATM::decryptCaesar(string P, int shift)
     return P;
 }
 
-string ATM::detectDrive()
+string ATM::scanDrivesOnce(bool requiredCardPresent)
 {
-    while (true)
-    {   
-        system("cls");
-        cout<<"Insert A Flash Drive!"<<endl;
-        DWORD drives = GetLogicalDrives();
+    DWORD drives = GetLogicalDrives();
 
-        for (int i = 0; i < 26; i++)
+    for (int i = 0; i < 26; i++)
+    {
+        if (drives & (1 << i))
         {
-            if (drives & (1 << i))
-            {
-                string driveLetter = string(1, 'A' + i) + ":\\";
+            string driveLetter = string(1, 'A' + i) + ":\\";
 
-                if (GetDriveTypeA(driveLetter.c_str()) == DRIVE_REMOVABLE)
-                {   
-                    system("cls");
-                    cout<<"Flash Drive Detected."<<endl;
-                    system("pause");
-                    return driveLetter;
+            if (GetDriveTypeA(driveLetter.c_str()) == DRIVE_REMOVABLE)
+            {
+                string path = driveLetter + card_fn;
+                ifstream file(path);
+                if(!file)
+                {
+                    if(!requiredCardPresent)
+                    {
+                        return driveLetter;
+                    }
+                }
+                else
+                {
+                    if(requiredCardPresent)
+                    {
+                        return driveLetter;
+                    }
                 }
             }
         }
-        Sleep(500);
     }
+    return "";
+}
+
+string ATM::detectDrive(bool requiredCardPresent)
+{
+    int attempts = 0;
+    while (attempts < 10)
+    {   
+        system("cls");
+        cout << "Insert A Flash Drive!" << endl;
+
+        string driveLetter = scanDrivesOnce(requiredCardPresent);
+        if(driveLetter != "")
+        {
+            return driveLetter;
+        }
+
+        Sleep(500);
+        attempts++;
+    }
+    return "";
 }
 
 bool ATM::stringToBool(const string &S)
@@ -269,6 +300,36 @@ bool ATM :: isValidDate(int month, int day, int year)
     return true;
 }
 
+bool ATM :: isValidTransaction(string amount)
+{
+    if(!isAllDigits(amount) || amount.length() > 9)
+        {
+            cout << "Invalid amount, please enter digits only" << endl;
+            return false;
+        }
+    else if(stoi(amount) < 100)
+        {
+            cout << "Invalid amount, minimum transaction of 100" << endl;
+            return false;
+        }
+    else if(stoi(amount) % 100 != 0)
+        {
+            cout << "Invalid amount, must be divisible by a hundred" << endl;
+            return false;
+        }
+    return true;
+}
+
+int ATM::promptTransactionAmount(string label)
+{
+    string amount;
+    do
+    {
+        cout << label << " [Minimum 100]: "; getline(cin, amount);
+    } while(!isValidTransaction(amount));
+    return stoi(amount);
+}
+
 void ATM::insertNode(Account X)
 {
     Node *prev, *curr, *newNode;
@@ -295,6 +356,7 @@ void ATM::registration(Account &X)
 {   
     if(isRegistered()){
         cout<<"Account Already Registered."<<endl;
+        system("pause");
         return;
     }
     string surname, firstname, middlename;
@@ -346,7 +408,7 @@ void ATM::registration(Account &X)
         cout << "Invalid Contact Number Format." << endl;
         cout << "Insert Contact Number: "; getline(cin, X.contact);
     }
-    cout << "Create New Pin: "; getline(cin, X.pin);
+    cout << "Create New Pin (6 digits): "; getline(cin, X.pin);
     while (X.pin.length() != 6 || !isAllDigits(X.pin))
     {
         cout << "Invalid pin." << endl;
@@ -368,8 +430,43 @@ void ATM::registration(Account &X)
 
 bool ATM::write(string AN, string P)
 {
-    string flash_drive = detectDrive();
+    string flash_drive = detectDrive(searchAccNum(AN));
+    if(flash_drive == "")
+    {
+        cout << "No drive detected." << endl;
+        system("pause");
+        return false;
+    }
+
     string path = flash_drive + card_fn;
+
+    if(searchAccNum(AN))
+    {
+        ifstream check(path);
+        if(!check)
+        {
+            cout << "File error" << endl;
+            system("pause");
+            return false;
+        }
+
+        string line;
+        getline(check, line);
+        check.close();
+
+        string d_line = decryptCaesar(line);
+        stringstream ss(d_line);
+        string existingAN;
+        getline(ss, existingAN, ',');
+
+        if(existingAN != AN)
+        {
+            cout << "Card mismatch, please insert the correct card." << endl;
+            system("pause");
+            return false;
+        }
+    }
+
     string line = AN + "," + P;
     string e_line = encryptCaesar(line);
 
@@ -388,34 +485,32 @@ bool ATM::write(string AN, string P)
 
 bool ATM::read(string &AN, string &P)
 {
-    bool alert = false;
-    while (true)
+    string flash_drive = detectDrive(true);
+    if(flash_drive == "")
     {
-        string flash_drive = detectDrive();
-        string path = flash_drive + card_fn;
-    
-        ifstream file(path);
-        if(!file)
-        {
-            if(alert == false)
-            {
-                cout << "Please Insert Card." << endl;
-                alert = true;
-            }
-            Sleep(500);
-            continue;
-        }
-        
-        string line;
-        getline(file, line);
-        string d_acc = decryptCaesar(line);
-        stringstream ss(d_acc);
-        getline(ss, AN, ',');
-        getline(ss, P, ',');
-
-        file.close();
-        return true;
+        cout << "No card detected." << endl;
+        system("pause");
+        return false;
     }
+    string path = flash_drive + card_fn;
+
+    ifstream file(path);
+    if(!file)
+    {
+        cout << "File error" << endl;
+        system("pause");
+        return false;
+    }
+
+    string line;
+    getline(file, line);
+    string d_acc = decryptCaesar(line);
+    stringstream ss(d_acc);
+    getline(ss, AN, ',');
+    getline(ss, P, ',');
+
+    file.close();
+    return true;
 }
 
 void ATM::save()
@@ -487,7 +582,10 @@ void ATM::load()
 
 void ATM::login(string AN, string P)
 {
-    read(AN, P);
+    if(!read(AN, P))
+    {
+        return;
+    }
 
     int i = 0;
     string typedPin;
@@ -496,18 +594,21 @@ void ATM::login(string AN, string P)
     if(curr == NULL)
     {
         cout << "Account doesn't exist" << endl;
+        system("pause");
         return;
     }
 
     if(curr->data.locked == true)
     {
         cout << "Account is locked, please see admin" << endl;
+        system("pause");
         return;
     }
 
     if(P != curr->data.pin)
     {
         cout << "Card error" << endl;
+        system("pause");
         return;
     }
 
@@ -525,6 +626,7 @@ void ATM::login(string AN, string P)
         {
             currentAcc = &curr->data;
             cout << "Login successful" << endl;
+            system("pause");
             return;
         } else
         {
@@ -538,6 +640,7 @@ void ATM::login(string AN, string P)
     save();
     logout();
     cout << "Account is locked, please see admin" << endl;
+    system("pause");
     return;
 }
 
@@ -548,17 +651,10 @@ double ATM::balance()
 
 void ATM::withdraw(int N)
 {
-    string amount;
-    while(N > currentAcc->balance || N < 0)
+    while(N > currentAcc->balance)
     {
         cout << "Invalid amount, your balance is: " << currentAcc->balance << endl;
-        cout << "Withdraw valid amount: "; getline(cin, amount);
-        if(!isAllDigits(amount) || amount.length() > 9)
-        {
-            cout << "Invalid amount, please enter digits only" << endl;
-            continue;
-        }
-        N = stoi(amount);
+        N = promptTransactionAmount("Withdraw valid amount");
     }
 
     currentAcc->balance -= N;
@@ -566,19 +662,12 @@ void ATM::withdraw(int N)
     return;
 }
 
-void ATM::deposit(double N)
+void ATM::deposit(int N)
 {
-    string amount;
     while (N < 0)
     {
         cout << "Invalid amount, your balance is: " << currentAcc->balance << endl;
-        cout << "Deposit valid amount: "; getline(cin, amount);
-        if(!isValidAmount(amount))
-        {
-            cout << "Invalid amount, please try again" << endl;
-            continue;
-        }
-        N = stod(amount);
+        N = promptTransactionAmount("Deposit valid amount");
     }
 
     currentAcc->balance += N;
@@ -591,6 +680,7 @@ void ATM::transfer(double N, string AN, string NM)
     if(currentAcc->accNum == AN)
     {
         cout << "Transfer to own account is invalid" << endl;
+        system("pause");
         return;
     }
 
@@ -598,18 +688,21 @@ void ATM::transfer(double N, string AN, string NM)
     if(recip == NULL)
     {
         cout << "Recipient doesn't exist" << endl;
+        system("pause");
         return;
     }
 
     if(recip->data.name != NM)
     {
         cout << "Name doesn't match" << endl;
+        system("pause");
         return;
     }
     
     if(recip->data.locked == true)
     {
         cout << "Recipient's account is locked" << endl;
+        system("pause");
         return;
     }
 
@@ -665,6 +758,7 @@ void ATM::pin()
                 currentAcc->pin = newPin;
                 save();
                 cout << "Pin changed successfully" << endl;
+                system("pause");
             }
             else
             {
@@ -682,25 +776,15 @@ void ATM::pin()
     }
     currentAcc->locked = true;
     cout << "Account is locked, please see admin" << endl;
+    system("pause");
     save();
     logout();
     return;
 }
 
-bool ATM::isRegistered(){
-    string flash_drive = detectDrive();
-    string path = flash_drive + card_fn;
-    bool flag = true;
-
-    ifstream file(path);
-
-    if(!file)
-    {
-        flag = false;
-    }
-
-    file.close();
-    return flag;
+bool ATM::isRegistered()
+{
+    return scanDrivesOnce(true) != "";
 }
 
 bool ATM::isLoggedIn()
@@ -711,6 +795,25 @@ bool ATM::isLoggedIn()
 void ATM::logout()
 {
     currentAcc = NULL;
+}
+
+void ATM::displayAcc(){
+    if(head == NULL){
+        cout<<"No accounts Available."<<endl;
+        return;
+    }
+    Node *curr = head;
+    cout<<left<<setw(20)<<"Account ID"
+        <<left<<setw(30)<<"Account Name"
+        <<left<<setw(10)<<"Status"
+        <<endl;
+    while(curr != NULL){
+        cout<<left<<setw(20)<<curr -> data.accNum
+            <<left<<setw(30)<<curr -> data.name
+            <<left<<setw(10)<<((curr -> data.locked == true) ? "Locked":"Unlocked")
+            <<endl;
+        curr = curr -> next;
+    }
 }
 
 void ATM::unlock(string AN)
@@ -787,7 +890,7 @@ int main()
     atm.load();
     Account newAcc;
     double amt;
-    int amtW;
+    int amtI;
     string amount, recipAN, recipNM, unlockAN;
     while(true)
     {   
@@ -808,28 +911,26 @@ int main()
                         system("pause");
                         break;
                     case 2:
-                        cout << "Insert amount to withdraw: "; 
+                        cout << "Insert amount to withdraw [Minimum 100]: "; 
                         getline(cin, amount);
-                        if(!atm.isAllDigits(amount) || amount.length() > 9)
+                        if(!atm.isValidTransaction(amount))
                         {
-                            cout<<"Invalid Input.";
                             system("pause");
                             break;
                         }
-                        amtW = stoi(amount);
-                        atm.withdraw(amtW);
+                        amtI = stoi(amount);
+                        atm.withdraw(amtI);
                         break;
                     case 3:
-                        cout << "Insert amount to deposit: "; 
+                        cout << "Insert amount to deposit [Minimum 100]: "; 
                         getline(cin, amount);
-                        if(!atm.isValidAmount(amount))
+                        if(!atm.isValidTransaction(amount))
                         {
-                            cout<<"Invalid Input.";
                             system("pause");
                             break;
                         }
-                        amt = stod(amount);
-                        atm.deposit(amt);
+                        amtI = stoi(amount);
+                        atm.deposit(amtI);
                         break;
                     case 4:
                         cout << "Insert the Account Number of the recipient: "; 
@@ -841,7 +942,7 @@ int main()
                             getline(cin, amount);
                             if(!atm.isValidAmount(amount))
                             {
-                                cout<<"Invalid Input.";
+                                cout<<"Invalid Input"<<endl;
                             }
                         }while(!atm.isValidAmount(amount));
                         amt = stod(amount);
@@ -876,6 +977,7 @@ int main()
                     switch (adminMenu())
                     {
                     case 1:
+                        atm.displayAcc();
                         cout << "Insert Account Number to unlock: "; getline(cin, unlockAN);
                         atm.unlock(unlockAN);
                         break;
