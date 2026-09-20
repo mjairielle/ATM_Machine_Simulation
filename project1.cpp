@@ -15,8 +15,6 @@ const string card_fn = "card.csv";
 const string ADMIN_USER = "admin";
 const string ADMIN_PASS = "admin123";
 
-// Affine cipher over digits, mod 10: E(x) = (a*x + b) mod 10.
-// One-way only: pins are compared in encrypted form and never decrypted.
 const int CIPHER_A = 7;
 const int CIPHER_B = 4;
 
@@ -558,8 +556,6 @@ void ATM::read(string &AN, string &P, string &drive)
         ifstream file(path);
         if(!file)
         {
-            // detectDrive already confirmed this file, but the drive can be
-            // pulled between that check and this open, so keep the guard.
             if(alert == false)
             {
                 cout << "Please Insert Card." << endl;
