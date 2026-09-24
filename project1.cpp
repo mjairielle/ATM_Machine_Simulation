@@ -454,7 +454,7 @@ void ATM::registration()
         system("pause");
         return;
     }
-
+    system("cls");
     Account X;
     string inputMonth, inputDay, inputYear;
     int month, day, year;
@@ -512,8 +512,11 @@ void ATM::registration()
     X.birthday = (month < 10 ? "0" : "") + to_string(month) + '-' + (day < 10 ? "0" : "") + to_string(day) + '-' + to_string(year);
 
     X.contact = promptFixedDigits("Insert Contact Number: ", 11);
-    X.pin = encryptAffine(promptFixedDigits("Create New Pin: ", 6));
-
+    string confirmedPin;
+    do{
+        X.pin = encryptAffine(promptFixedDigits("Create New Pin: ", 6));
+        confirmedPin = encryptAffine(promptFixedDigits("Confirm Pin: ", 6));
+    }while(confirmedPin != X.pin);
     string drive = detectDrive(false);
     if(write(X.accNum, X.pin, drive))
     {
@@ -645,7 +648,6 @@ void ATM::login()
 {
     string AN, P, drive;
     read(AN, P, drive);
-
     Node* curr = findNode(AN);
     if(curr == NULL)
     {
@@ -667,6 +669,7 @@ void ATM::login()
         system("pause");
         return;
     }
+    system("cls");
 
     if(!authenticate(curr))
     {
