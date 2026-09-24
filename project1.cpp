@@ -436,6 +436,7 @@ bool ATM::authenticate(Node *acc)
             i++;
             cout << "Incorrect pin" << endl;
             system("pause");
+            system("cls");
             continue;
         }
     }
@@ -444,6 +445,7 @@ bool ATM::authenticate(Node *acc)
     logout();
     cout << "Account is locked, please see admin" << endl;
     system("pause");
+    system("cls");
     return false;
 }
 
@@ -518,6 +520,7 @@ void ATM::registration()
         confirmedPin = encryptAffine(promptFixedDigits("Confirm Pin: ", 6));
     }while(confirmedPin != X.pin);
     string drive = detectDrive(false);
+    system("cls");
     if(write(X.accNum, X.pin, drive))
     {
         insertNode(X);
@@ -609,6 +612,8 @@ void ATM::load()
     ifstream file(fd_fn);
     if(!file)
     {
+        cout << "File error" << endl;
+        Sleep(500);
         return;
     }
 
@@ -680,6 +685,7 @@ void ATM::login()
     currentAcc = curr;
     cout << "Login successful" << endl;
     system("pause");
+    system("cls");
 }
 
 double ATM::balance()
